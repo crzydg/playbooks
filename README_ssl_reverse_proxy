@@ -1,0 +1,4 @@
+The playbook takes two variables as inputs: source_dns and destination, which can be passed to the playbook using the --extra-vars option
+
+ansible-playbook ssl_reverse_proxy.yml --extra-vars "source_dns=example.com destination=192.168.0.100"
+
