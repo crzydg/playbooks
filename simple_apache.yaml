@@ -1,0 +1,91 @@
+---
+- name: Set up Apache server with best practices
+  hosts: all
+  become: yes
+
+  tasks:
+  - name: Update package list
+    apt:
+      update_cache: yes
+
+  - name: Install Apache
+    apt:
+      name: apache2
+      state: present
+
+  - name: Start Apache and enable it to start at boot
+    service:
+      name: apache2
+      state: started
+      enabled: yes
+
+  - name: Allow HTTP and HTTPS traffic through firewall
+    ufw:
+      rule: allow
+      port:
+        - 80/tcp
+        - 443/tcp
+      state: enabled
+
+  - name: Install mod_security and mod_ssl
+    apt:
+      name:
+        - libapache2-mod-security2
+        - libapache2-mod-ssl
+      state: present
+
+  - name: Generate self-signed SSL certificates
+    command: openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
+    args:
+      creates: /etc/ssl/certs/apache-selfsigned.crt
+
+  - name: Generate DH parameters
+    command: openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+    args:
+      creates: /etc/ssl/certs/dhparam.pem
+
+  - name: Configure Apache virtual host with SSL and security measures
+    lineinfile:
+      dest: /etc/apache2/sites-available/default-ssl.conf
+      state: present
+      line: |
+        <VirtualHost *:443>
+          ServerAdmin webmaster@localhost
+          DocumentRoot /var/www/html
+        
+          SSLEngine on
+          SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
+          SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
+        
+          <Directory /var/www/html>
+            AllowOverride None
+            Require all granted
+          </Directory>
+        
+          ServerSignature Off
+          Header unset ETag
+          FileETag None
+        
+          LimitRequestFields 50
+          LimitRequestLine 8190
+          LimitRequestBody 10240000
+          LimitXMLRequestBody 1048576
+        
+          TraceEnable off
+        
+          <IfModule mod_security2.c>
+            SecRuleEngine On
+            SecRequestBodyAccess On
+            SecResponseBodyAccess On
+            SecUploadDir /tmp
+            SecUploadKeepFiles Off
+            SecRuleRemoveById 960015
+            SecRuleRemoveById 960032
+          </IfModule>
+        
+          ErrorLog ${APACHE_LOG_DIR}/error.log
+          CustomLog ${APACHE_LOG_DIR}/access.log combined
+        
+          SSLCipherSuite ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256
+        </VirtualHost>
+
