@@ -1,0 +1,1 @@
+You will need to replace <repo_server_hostname> with the actual hostname of your repository server and /path/to/repo with the actual path to the repository, and <resource_group_name> with the actual name of your Azure resource group.

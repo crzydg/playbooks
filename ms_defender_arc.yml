@@ -1,0 +1,23 @@
+---
+- name: Install Microsoft Defender and register with Azure Arc
+  hosts: all
+  become: yes
+  tasks:
+  - name: Add the repository server to the target system
+    yum_repository:
+      name: "Microsoft Defender"
+      description: "Microsoft Defender Repository"
+      baseurl: "http://<repo_server_hostname>/path/to/repo"
+      gpgcheck: no
+
+  - name: Install Microsoft Defender
+    yum:
+      name: msft-defender
+      state: present
+
+  - name: Register Microsoft Defender with Azure Arc agent
+    command: azcmagent register --resource-group <resource_group_name> --policy-agent true
+
+  - name: Verify the registration
+    command: azcmagent show
+
