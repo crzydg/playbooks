@@ -1,0 +1,122 @@
+---
+- name: Configure OpenSSH Server
+  hosts: all
+  become: yes
+  
+  tasks:
+  # 1. Install OpenSSH Server
+  - name: Install OpenSSH Server
+    apt:
+      name: openssh-server
+      state: present
+      
+  # 2. Disable password authentication
+  - name: Disable password authentication
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "PasswordAuthentication no"
+      state: present
+  
+  # 3. Set up SSH Key based authentication
+  - name: Set up SSH Key based authentication
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "PubkeyAuthentication yes"
+      state: present
+  
+  # 4. Disable root login
+  - name: Disable root login
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "PermitRootLogin no"
+      state: present
+  
+  # 5. Log to a custom location
+  - name: Log to a custom location
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "SyslogFacility AUTHPRIV"
+      state: present
+  - name: Log to a custom file
+    lineinfile:
+      dest: /etc/rsyslog.d/secure.conf
+      line: "auth,authpriv.*        /var/log/secure"
+      state: present
+  - name: Restart rsyslog service
+    service:
+      name: rsyslog
+      state: restarted
+  
+  # 6. Make logs verbose
+  - name: Make logs verbose
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "LogLevel VERBOSE"
+      state: present
+  
+  # 7. Hardening
+  - name: Hardening
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "Protocol 2"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "StrictModes yes"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "UsePrivilegeSeparation sandbox"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "PermitEmptyPasswords no"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "ChallengeResponseAuthentication no"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "UsePAM yes"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "AllowTcpForwarding no"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "MaxAuthTries 3"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "MaxSessions 3"
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "ClientAliveInterval 300"
+    lineinfile:
+      dest:
+      dest: /etc/ssh/sshd_config
+      line: "ClientAliveCountMax 0"
+    state: present
+  
+  # 8. Bind to a specific IP address
+  - name: Bind to a specific IP address
+    shell: |
+      IP_ADDRESS=$(hostname -I | awk '{print $1}')
+      echo "ListenAddress $IP_ADDRESS" >> /etc/ssh/sshd_config
+  
+  # 9. Set up the banner
+  - name: Set up the banner
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      line: "Banner /etc/ssh/banner"
+      state: present
+  - name: Create the banner
+    copy:
+      dest: /etc/ssh/banner
+      content: |
+        ====================================
+        WARNING: UNAUTHORIZED ACCESS PROHIBITED
+        ====================================
+        This system is monitored and recorded at all times.
+        All activities on this system may be monitored and recorded.
+  
+  # 10. Restart OpenSSH Server
+  - name: Restart OpenSSH Server
+    service:
+      name: ssh
+      state: restarted
+
