@@ -1,0 +1,61 @@
+---
+- name: Configure Squid proxy
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: Install Squid proxy
+      apt:
+        name: squid
+        state: present
+        update_cache: yes
+
+    - name: Create backup of the original squid.conf file
+      copy:
+        src: /etc/squid/squid.conf
+        dest: /etc/squid/squid.conf.bak
+      become: yes
+
+    - name: Create new squid.conf file
+      lineinfile:
+        dest: /etc/squid/squid.conf
+        line: 'http_port 3128'
+      become: yes
+      register: squid_conf
+    - name: Configure squid.conf with no cache and no access log
+      lineinfile:
+        dest: /etc/squid/squid.conf
+        line: 'cache deny all'
+        insertafter: '^http_port 3128'
+      become: yes
+    - name: Configure squid.conf to allow access from RFC1918 IPs
+      lineinfile:
+        dest: /etc/squid/squid.conf
+        line: 'acl localnet src 10.0.0.0/8'
+        insertafter: '^cache deny all'
+      become: yes
+    - name: Configure squid.conf to allow access from RFC1918 IPs
+      lineinfile:
+        dest: /etc/squid/squid.conf
+        line: 'acl localnet src 172.16.0.0/12'
+        insertafter: '^acl localnet src 10.0.0.0/8'
+      become: yes
+    - name: Configure squid.conf to allow access from RFC1918 IPs
+      lineinfile:
+        dest: /etc/squid/squid.conf
+        line: 'acl localnet src 192.168.0.0/16'
+        insertafter: '^acl localnet src 172.16.0.0/12'
+      become: yes
+    - name: Configure squid.conf to allow access from RFC1918 IPs
+      lineinfile:
+        dest: /etc/squid/squid.conf
+        line: 'http_access allow localnet'
+        insertafter: '^acl localnet src 192.168.0.0/16'
+      become: yes
+
+    - name: Restart Squid proxy
+      service:
+        name: squid
+        state: restarted
+      become: yes
+
