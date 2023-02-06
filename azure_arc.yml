@@ -1,0 +1,37 @@
+- name: Install Azure Arc agent
+  hosts: all
+  become: yes
+
+  tasks:
+  - name: Update the system
+    yum:
+      name: "*"
+      state: latest
+
+  - name: Install required packages
+    yum:
+      name:
+        - curl
+      state: present
+
+  - name: Add Microsoft repository
+    lineinfile:
+      dest: /etc/yum.repos.d/azure-arc.repo
+      line: |
+        [azure-arc]
+        name=Azure Arc
+        baseurl=<internal repository server URL>/azure-arc
+        enabled=1
+        gpgcheck=0
+
+  - name: Install the Azure Arc agent
+    yum:
+      name: azure-arc-agents
+      state: present
+      
+  - name: Start and enable the Azure Arc agent
+    service:
+      name: azure-arc-agents
+      state: started
+      enabled: yes
+
