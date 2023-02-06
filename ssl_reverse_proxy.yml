@@ -1,0 +1,36 @@
+- name: Set up SSL reverse proxy
+  hosts: localhost
+  gather_facts: yes
+
+  vars:
+    source_dns: "{{ lookup('env', 'source_dns') }}"
+    destination: "{{ lookup('env', 'destination') }}"
+
+  tasks:
+    - name: Enable Apache modules
+      apache2_module:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - proxy
+        - proxy_http
+        - ssl
+
+    - name: Create virtual host configuration file
+      template:
+        src: ssl_reverse_proxy.conf.j2
+        dest: "/etc/apache2/sites-available/{{ source_dns }}.conf"
+      vars:
+        source_dns: "{{ source_dns }}"
+        destination: "{{ destination }}"
+
+    - name: Enable virtual host
+      apache2_site:
+        state: link
+        name: "{{ source_dns }}.conf"
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+
